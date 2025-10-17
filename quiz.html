@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz UI - Technical Exam</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ... CSS UNCHANGED ... */
+    :root{
+      --bg: #f6f8f7;
+      --card: #f7f7fa;
+      --muted: #26148a;
+      --accent: #120e5a; /* green */
+      --accent-soft: rgba(32, 19, 121, 0.08);
+      --border: #0d033e;
+      --shadow: 0 8px 20px rgba(15,30,15,0.06);
+      --radius: 12px;
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    /* EXISTING STYLES (UNCHANGED) */
+    html,body{height:100%; margin:0; background:var(--bg); color:#0f1f1a;}
+    .wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:48px 24px;
+      box-sizing:border-box;
+    }
+    .container{
+      width:1200px;
+      max-width:calc(100% - 48px);
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:32px;
+      align-items:start;
+    }
+    .left{
+      background:transparent;
+      padding: 12px 6px;
+    }
+    .breadcrumb{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:14px;
+    }
+    h1.title{
+      font-size:28px;
+      margin:0 0 24px 0;
+      line-height:1.15;
+      font-weight:700;
+      color:#15332c;
+    }
+    /* New: Image container style */
+    .question-image-container {
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fafafa;
+      text-align: center;
+    }
+    .question-image-container img {
+      max-width: 100%;
+      height: auto;
+      max-height: 300px;
+      display: block;
+      margin: 0 auto;
+      border-radius: 6px;
+    }
+
+    .options{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .option{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding:14px 18px;
+      background:var(--card);
+      border-radius:10px;
+      border:2px solid var(--border);
+      box-shadow: var(--shadow);
+      cursor:pointer;
+      transition: all .18s ease;
+      user-select:none;
+    }
+    .option:hover{ transform:translateY(-3px); box-shadow:0 14px 30px rgba(15,30,15,0.06);}
+    .option .letter{
+      min-width:46px;
+      height:46px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px;
+      font-weight:700;
+      color:#16064f;
+      background:transparent;
+      border:1px solid rgba(18,45,36,0.06);
+      font-size:14px;
+      flex-shrink:0;
+    }
+    .option .text{
+      color:#222;
+      font-weight:500;
+      font-size:15px;
+    }
+    .option.selected{
+      border-color:var(--accent);
+      box-shadow: 0 10px 24px rgba(47,139,107,0.12);
+    }
+    .option.selected .letter{
+      background:transparent;
+      border:2px solid var(--accent);
+      color:var(--accent);
+      font-weight:700;
+    }
+    .option.selected .check{
+      margin-left:auto;
+      width:36px;
+      height:36px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--accent-soft);
+      border-radius:8px;
+      color:var(--accent);
+      flex-shrink:0;
+    }
+    .option.disabled{
+      /* Removed opacity and transform/shadow effects to allow interaction,
+         but keeping the class for historical visual styling if needed.
+         The ability to click is now controlled purely by JavaScript listeners. */
+      cursor:pointer; /* Set back to pointer */
+    }
+    .submit-row{
+      margin-top:10px;
+    }
+    .btn{
+      display:inline-block;
+      padding:12px 26px;
+      background:var(--accent);
+      color:#fff;
+      border-radius:28px;
+      text-decoration:none;
+      font-weight:600;
+      border:none;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(47,139,107,0.14);
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(47,139,107,0.24);
+    }
+
+    .right{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
+    }
+    .timer-wrap{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      justify-content:center;
+      flex-direction:column;
+      padding:22px;
+      text-align:center;
+    }
+    .timer-wrap .label{font-size:13px; color:var(--muted); margin-top:6px;}
+    .timer-num{font-weight:700; color:#03022f; margin-top:8px;}
+    .donut{
+      width:120px;
+      height:120px;
+      position:relative;
+    }
+    .donut svg{transform:rotate(-90deg); width:120px; height:120px; display:block;}
+    .donut .center{
+      position:absolute;
+      left:50%; top:50%;
+      transform:translate(-50%,-50%);
+      font-weight:700;
+      color:#164033;
+      font-size:18px;
+    }
+    .quiz-list{
+      max-height:360px;
+      overflow:auto;
+      padding:6px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .q-item{
+      background: linear-gradient(90deg, rgba(47,139,107,0.06), rgba(47,139,107,0.03));
+      border-radius:8px;
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      justify-content:space-between;
+      border:1px solid rgba(47,139,107,0.06);
+      font-size:14px;
+      color:#123327;
+      cursor:pointer;
+    }
+    .q-item.current{
+        background: var(--accent-soft);
+        border: 1px solid var(--accent);
+        font-weight: 600;
+    }
+    .q-item.answered{
+        background: rgba(47,139,107,0.15);
+        border: 1px solid rgba(2, 9, 40, 0.5);
+        color: #0f1f1a;
+    }
+    /* Style for a skipped/unanswered question */
+    .q-item.skipped{
+        background: rgba(255, 193, 7, 0.2); /* Yellow/Orange background */
+        border: 1px solid #ffc107; /* Yellow/Orange border */
+        color: #3f2c00; /* Dark text */
+        font-style: italic;
+    }
+    /* New style for penalized question */
+    .q-item.penalized{
+        background: rgba(255, 99, 71, 0.2); /* Light Red/Orange background */
+        border: 1px solid #ff6347; /* Red/Orange border */
+        color: #5a1e12; /* Darker text */
+        font-style: italic;
+    }
+
+    .q-item.inactive{
+      background:transparent;
+      border:1px solid #f0f2f1;
+      color:var(--muted);
+      pointer-events: none; /* Disable jumping between questions */
+    }
+    @media (max-width:1080px){
+      .container{grid-template-columns:1fr 320px; gap:20px;}
+    }
+    @media (max-width:900px){
+      .container{grid-template-columns:1fr; max-width:900px;}
+      .right{order:2;}
+      .left{order:1;}
+      .container{gap:20px;}
+    }
+
+    /* --- MODAL & PROCTORING (UNCHANGED) --- */
+    .wrap {
+        display: none; /* Hide the quiz content initially */
+    }
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(246, 244, 244, 0.816);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .modal-content {
+        background: var(--card);
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: var(--shadow);
+    }
+    .modal-content h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+        color: var(--accent);
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 10px;
+    }
+    .modal-content p {
+        margin-bottom: 15px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: #333;
+    }
+    .instructions-list {
+        margin: 15px 0;
+        padding-left: 20px;
+        list-style-type: disc;
+        color: #333;
+    }
+    .instructions-list li {
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    .start-control {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 20px;
+    }
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #a2a1b0;
+    }
+    .checkbox-group input {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+    }
+    .start-btn {
+        width: 100%;
+        text-align: center;
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    /* Loading spinner for question fetching */
+    .loading-question {
+        text-align: center;
+        padding: 50px;
+        color: var(--muted);
+    }
+    .loading-spinner {
+        border: 4px solid var(--accent-soft);
+        border-top: 4px solid var(--accent);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* --- NEW CUSTOM ALERT STYLES --- */
+    #notification-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 350px;
+        width: 100%;
+        pointer-events: none; /* Allows clicks to pass through empty space */
+    }
+    .notification {
+        background: #8f0909b0; /* Light warning yellow */
+        color: #f3eeee; /* Dark yellow text */
+        border: 1px solid #ffeeba;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.5s ease-out;
+        pointer-events: auto; /* Re-enable pointer events for the box itself */
+    }
+    .notification.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .notification.error {
+        background: #f8d7da; /* Light error red */
+        color: #721c24; /* Dark error text */
+        border: 1px solid #f5c6cb;
+    }
+    
+    /* --- NEW FOOTER STYLE --- */
+    #page-footer {
+        background: var(--card);
+        font-size: 12px;
+        color: var(--muted);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px 0;
+        text-align: center;
+    }
+  </style>
+</head>
+<body>
+    <div id="instructionModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Technical Assignment Examination</h2>
+            <p>Welcome to the final assessment. Please read the following instructions carefully before starting the exam.</p>
+
+            <div style="background:var(--accent-soft); padding:15px; border-radius:8px; border:1px solid var(--accent); color:#0f0f66;">
+                <strong>Exam Details:</strong><br>
+                <ul>
+                    <li>Total Questions:<b id="initial-total-q">40 Questions</b></li>
+                    <li>Time Limit: <b id="initial-time-limit">1 Hour (60 Minutes)</b></li>
+                </ul>
+            </div>
+            
+            <ul class="instructions-list">
+                <li><b>Note:</b> This is an <b>internal examination</b> conducted exclusively for authorized participants under institutional guidelines.</li>
+                <li>This exam must be taken in <b>Full Screen</b> mode.</li>
+                <li><b>Do not switch tabs or minimize the window.</b> Doing so will trigger a warning.</li>
+                <li>You have a grace period of <b>5 warnings</b>. Starting from the <b>6th warning</b>, the mark for the <b>current question</b> will be penalized to <b>0.5 marks</b>.</li>
+                <li>The exam will terminate upon reaching <b>40 total violations</b>.</li>
+                <li>Ensure a stable internet connection throughout the test.</li>
+                <li>The <b>'Next Question'</b> button allows you to move forward, even if you skip the current question.</li>
+                <li>You can return to any <b>skipped</b> question using the question progress panel.</li>
+                <li>The examination will be <b>automatically submitted</b> upon completion of the allotted <b>1-hour duration</b>. Participants may choose to submit their responses manually during the <b>final 15 minutes</b> of the exam period.</li>
+            </ul>
+            <div class="start-control">
+                <label class="checkbox-group">
+                    <input type="checkbox" id="agreeCheckbox">
+                    I have read and agree to follow all the instructions.
+                </label>
+                <button id="startQuizBtn" class="btn start-btn" disabled>Start Exam</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="wrap" id="quizWrap">
+      <main class="container" role="main" aria-labelledby="page-title">
+
+        <section class="left">
+          <br>
+          <div class="breadcrumb" id="breadcrumb">Loading...</div>
+          <div id="image-container" class="question-image-container" style="display:none;">
+            <img id="question-image" src="" alt="Question Image">
+          </div>
+          <h1 id="page-title" class="title">Loading Question...</h1>
+          
+          <div id="question-content">
+            <div class="options" role="list" id="options-list">
+                <div class="loading-question">
+                    <div class="loading-spinner"></div>
+                    Fetching question data...
+                </div>
+            </div>
+    
+            <div class="submit-row">
+              <button id="prevBtn" class="btn" style="display:none;">Previous</button>
+              
+              
+
+              <button id="nextBtn" class="btn" style="margin-left: 10px;">Next Question</button>
+              <button id="submitQuizBtn" class="btn" style="display:none; margin-left: 10px;">Submit Quiz</button><br><br>
+              <button id="fullscreenBtn" class="btn" style="background:#555; margin-left: 10px; display: none;">Re-enter Full Screen</button>
+            </div>
+          </div>
+          
+        </section>
+
+        <aside class="right" aria-label="sidebar">
+          <div class="card timer-wrap" aria-live="polite">
+            <div class="donut" aria-hidden="true">
+              <svg viewBox="0 0 120 120" width="120" height="120">
+                <defs>
+                  <linearGradient id="g1" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#2f8b6b"/>
+                    <stop offset="100%" stop-color="#62b183"/>
+                  </linearGradient>
+                </defs>
+
+                <circle cx="60" cy="60" r="48" stroke="#e7efe9" stroke-width="14" fill="none"></circle>
+
+                <circle id="progress" cx="60" cy="60" r="48" stroke="url(#g1)" stroke-width="14" stroke-linecap="round"
+                        stroke-dasharray="302.88" stroke-dashoffset="0" fill="none"></circle>
+              </svg>
+
+              <div class="center">
+                <div id="timeText">Loading...</div>
+              </div>
+            </div>
+            <div class="label">Timer Remaining</div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:700; margin-bottom:10px;">Question Progress (<span id="progress-text">0/??</span>)</div>
+            <div class="quiz-list" id="quizList">
+              </div>
+          </div>
+
+        </aside>
+
+      </main>
+    </div>
+    <div id="notification-container"></div>
+    
+    <footer id="page-footer">
+        &copy; 2024 MISS Electronics. All rights reserved by MISS Electronics.
+    </footer>
+
+<script>
+    // =========================================================================
+    // --- 1. JWT AUTHENTICATION CHECK (Security Gate) ---
+    // =========================================================================
+    const LOGIN_PAGE_URL = 'login.html'; 
+    const accessToken = localStorage.getItem('accessToken');
+    const userName = localStorage.getItem('userName'); // Retrieve username (Roll No)
+    
+    // --- API CONSTANTS ---
+    // Using the previously confirmed external IP for API communication
+    const API_BASE_URL = 'http://10.37.52.254:8000/api/'; 
+    
+    // API 1 (Consolidated Fetch): GET /api/exam/{username}/
+    const QUIZ_FETCH_API_FULL_URL = `${API_BASE_URL}exam/${userName}/`; 
+    // API 2: Submission (POST - /api/exam/{username}/submit/)
+    const QUIZ_SUBMIT_API_URL = `${API_BASE_URL}exam/${userName}/submit/`; 
+    // API 3 (Real-Time Update): POST /api/exam/{username}/question/{questionId}/update/
+    const QUIZ_UPDATE_BASE_URL = `${API_BASE_URL}exam/${userName}/question/`;
+
+
+    const END_EXAM_URL = 'feedback.html'; 
+    const EXAM_COMPLETED_URL = 'feedback.html'; // Redirect to thankyou.html on completion/lockout
+    const FINAL_SUBMISSION_WINDOW_SECONDS = 15 * 60; // 15 minutes = 900 seconds
+
+    if (!accessToken || !userName) {
+        // Token or Username (Roll No) is missing, redirect user to the login page
+        console.warn('Authentication token or user identifier missing. Redirecting to login.');
+        window.location.href = LOGIN_PAGE_URL;
+        // Stop all other script execution
+        throw new Error('Unauthorized Access Attempt.');
+    }
+    
+    // --- UTILITY: Debounce Function (UNCHANGED) ---
+    function debounce(func, wait) {
+        let timeout;
+        return function executed(...args) {
+            const context = this;
+            const later = () => {
+                clearTimeout(timeout);
+                func.apply(context, args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+
+    // =========================================================================
+    // --- 2. GLOBAL QUIZ STATE & API CONSTANTS ---
+    // =========================================================================
+    // Initial UI Values (Defaults used until API data loads)
+    let TOTAL_QUESTIONS = 40; 
+    let TOTAL_TIME_SECONDS = 60 * 60; // 1 hour (Default/Max allowed time)
+    
+    let quizData = []; 
+    let quizSessionId = null; // We use userName as the session key
+    
+    let currentQuestion = null; 
+    let currentQuestionNumber = 0; 
+    let selectedOption = null; 
+    let quizProgress = []; 
+    let timerInterval = null;
+
+    // --- PROCTORING VARIABLES (UNCHANGED) ---
+    const MAX_WARNINGS_BEFORE_DEDUCTION = 5; 
+    const PENALIZED_MARKS = 0.5; 
+    const EXAM_TERMINATION_WARNING = 3000; 
+    let warningCount = 0; // CRITICAL: LOCAL counter for the current sync cycle (flushed on sync)
+    let quizActive = false;
+    const debouncedHandleViolation = debounce(handleViolation, 500); 
+
+    // --- ELEMENTS (UNCHANGED) ---
+    const optionsListEl = document.getElementById('options-list');
+    const questionTitleEl = document.getElementById('page-title');
+    const imageContainerEl = document.getElementById('image-container');
+    const questionImageEl = document.getElementById('question-image');
+    const prevBtnEl = document.getElementById('prevBtn');
+    const nextBtnEl = document.getElementById('nextBtn');
+    const submitQuizBtnEl = document.getElementById('submitQuizBtn');
+    const fullscreenBtnEl = document.getElementById('fullscreenBtn'); 
+    const quizListEl = document.getElementById('quizList');
+    const progressTextEl = document.getElementById('progress-text');
+    const breadcrumbEl = document.getElementById('breadcrumb');
+    const notificationContainer = document.getElementById('notification-container');
+    const initialTotalQEl = document.getElementById('initial-total-q');
+    const initialTimeLimitEl = document.getElementById('initial-time-limit');
+
+
+    // --- NEW: Custom Notification Function (UNCHANGED) ---
+    function showNotification(message, isError = false, duration = 4000) {
+        const notificationEl = document.createElement('div');
+        notificationEl.classList.add('notification');
+        if (isError) {
+            notificationEl.classList.add('error');
+        }
+        notificationEl.textContent = message;
+        
+        setTimeout(() => {
+            notificationEl.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            notificationEl.classList.remove('show');
+            notificationEl.addEventListener('transitionend', () => {
+                notificationEl.remove();
+            }, { once: true }); 
+        }, duration);
+        
+        notificationContainer.appendChild(notificationEl);
+    }
+    
+    // UTILITY: Formats time for display (UNCHANGED)
+    function formatTime(totalSeconds) {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        return (hours > 0 ? hours + ' Hour(s) ' : '') + (minutes > 0 ? minutes + ' Minute(s)' : '30 Minutes');
+    }
+
+    /**
+     * Helper function to calculate marks based on Question ID range.
+     * Rule: ID 1-50 = 1 Mark, ID 51-100 = 2 Marks
+     */
+    function calculateMarks(questionId) {
+        if (questionId >= 1 && questionId <= 50) {
+            return 1.0;
+        } else if (questionId >= 51 && questionId <= 100) {
+            return 2.0;
+        }
+        // Default to 1 mark if ID is outside the defined range
+        return 1.0; 
+    }
+    
+    // =========================================================================
+    // --- 3. CORE API FUNCTIONS (MODIFIED FOR SINGLE-STEP FETCH) ---
+    // =========================================================================
+
+    /**
+     * API 3: Real-time update of user answer and warning count.
+     * Resets local warningCount to zero on success.
+     */
+    async function updateQuestionState(questionId, selectedAnswer, warningsSent) {
+        // Send 'N' if the answer is null/undefined
+        const answerToSend = selectedAnswer || 'N';
+        const updateUrl = `${QUIZ_UPDATE_BASE_URL}${questionId}/update/`;
+        
+        try {
+            const response = await fetch(updateUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`, 
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selected_answer: answerToSend, 
+                    warnings_count: warningsSent 
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || data.message || 'Failed to sync state.');
+            }
+
+            // CRITICAL STEP: Reset local warning counter to 0 for the next counting cycle
+            warningCount = 0; 
+            console.log(`State synced. Local warningCount reset to 0. Backend total warnings`);
+
+        } catch (error) {
+            console.error("Error syncing real-time state:", error);
+            showNotification(`Warning sync failed! Network error or server issue.`, true, 5000);
+        }
+    }
+    
+    /**
+     * Step 1 (Consolidated): Fetches the full exam state using the username.
+     * This is called on DOMContentLoaded.
+     */
+    async function initializeQuizSession() {
+        
+        const fetchUrl = QUIZ_FETCH_API_FULL_URL;
+        
+        try {
+            initialTotalQEl.textContent = 'Initializing...';
+            initialTimeLimitEl.textContent = 'Initializing...';
+            
+            // --- API: GET to /api/exam/{username}/ ---
+            const response = await fetch(fetchUrl, {
+                method: 'GET', 
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`, // JWT Token for verification
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            // CRITICAL: Check for 403 or other non-OK status indicating termination/lockout
+            if (response.status === 403 || response.status === 410) { 
+                window.location.href = EXAM_COMPLETED_URL;
+                return;
+            }
+            
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // Token expired/invalid, force re-login
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('userName'); 
+                    window.location.href = LOGIN_PAGE_URL;
+                }
+                throw new Error(data.detail || data.message || `Failed to fetch exam data. Server status: ${response.status}.`);
+            }
+            
+            // --- Set Global Quiz State from Backend Response ---
+            if (!data.questions || !data.timer || data.warnings === undefined || data.penalties === undefined) {
+                 throw new Error("Invalid data structure received from the server.");
+            }
+
+            // CRITICAL: Initialize session state and counters
+            quizSessionId = data.username; // Use username as session ID/key for submission API
+            warningCount = 0; // Local counter starts at 0 for the new sync cycle
+            
+            // Map question data to local state structure
+            quizData = data.questions.map(q => {
+                // Calculate marks based on ID range rule
+                const calculatedMarks = calculateMarks(q.id); 
+                
+                // Check if the question was previously penalized (penalties > 0)
+                const isPenalizedFlag = q.penalties > 0;
+                
+                // Convert options object {A: "text", B: "text"} to an array for simpler frontend iteration
+                const optionsArray = Object.keys(q.options).map(key => ({
+                    key: key,
+                    text: q.options[key]
+                }));
+
+                return {
+                    id: q.id,
+                    questionText: q.text,
+                    options: optionsArray,
+                    marks: calculatedMarks, // ASSIGNED MARKS
+                    // CRITICAL IMAGE CHANGE: Construct the full URL if image_url is present
+                    imageUrl: q.image_url ? `${API_BASE_URL.replace('/api/', '')}${q.image_url}` : null,
+                    userAnswer: q.user_answer, // Previous answer state (will be null if unanswered)
+                    isPenalized: isPenalizedFlag, // Penalty state
+                };
+            });
+            
+            // Overwrite defaults with values from the backend state
+            TOTAL_QUESTIONS = quizData.length;
+            TOTAL_TIME_SECONDS = data.timer; // IMPORTANT: This is the REMAINING time.
+
+            // Initialize progress array based on fetched answers/penalties
+            quizProgress = quizData.map(q => {
+                if (q.userAnswer) {
+                    return q.isPenalized ? 'penalized' : 'answered';
+                }
+                if (q.isPenalized) return 'penalized'; 
+                return 'unanswered';
+            });
+            
+            // Update Instructions Modal with real data
+            initialTotalQEl.textContent = `${TOTAL_QUESTIONS} Questions`;
+            initialTimeLimitEl.textContent = `Remaining: ${formatTime(TOTAL_TIME_SECONDS)}`;
+            
+            // Update Sidebar placeholder
+            progressTextEl.textContent = `0/${TOTAL_QUESTIONS}`;
+
+            // Enable the start button if data loaded successfully
+            const startQuizBtn = document.getElementById('startQuizBtn');
+            const agreeCheckbox = document.getElementById('agreeCheckbox');
+            if (agreeCheckbox.checked && quizData.length > 0) {
+                startQuizBtn.disabled = false;
+                startQuizBtn.style.opacity = '1';
+                startQuizBtn.style.cursor = 'pointer';
+                // CRITICAL: Change button text to "Resume Exam" on successful data load (i.e., on refresh)
+                startQuizBtn.textContent = 'Resume Exam'; 
+            }
+            
+        } catch (error) {
+            console.error("Critical Error during Quiz Session Init:", error);
+            showNotification(error.message || "Failed to load exam data. Check server console for errors.", true, 10000);
+            
+            // Restore static values/show error if fetch failed
+            initialTotalQEl.textContent = `Error (${TOTAL_QUESTIONS} Default)`;
+            initialTimeLimitEl.textContent = `Error (${formatTime(TOTAL_TIME_SECONDS)} Default)`;
+            progressTextEl.textContent = `0/??`;
+
+            document.getElementById('startQuizBtn').disabled = true;
+            document.getElementById('startQuizBtn').textContent = 'Error Loading Quiz';
+        }
+    }
+
+
+    // --- QUIZ UI MANAGEMENT (UNCHANGED LOGIC) ---
+
+    function renderOptions(options, selectedKey) {
+        optionsListEl.innerHTML = '';
+        selectedOption = selectedKey; 
+        
+        options.forEach(opt => {
+            const optionEl = document.createElement('div');
+            optionEl.classList.add('option');
+            optionEl.setAttribute('role', 'button');
+            optionEl.setAttribute('tabindex', '0');
+            const key = opt.key || opt.id; 
+            const text = opt.text || opt.content; 
+            
+            optionEl.setAttribute('data-value', key);
+
+            const isSelected = key === selectedKey;
+            if(isSelected) {
+                optionEl.classList.add('selected');
+            }
+
+            optionEl.innerHTML = `
+                <div class="letter">${key}</div>
+                <div class="text">${text}</div>
+                <div class="check" style="display:${isSelected ? 'flex' : 'none'};">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            `;
+            
+            optionEl.addEventListener('click', handleOptionClick);
+            
+            optionsListEl.appendChild(optionEl); 
+        });
+    }
+
+    function handleOptionClick(e) {
+        if (!quizActive) return;
+        
+        const clickedOption = e.currentTarget;
+        const allOptions = document.querySelectorAll('#options-list .option');
+        
+        allOptions.forEach(o => {
+            o.classList.remove('selected');
+            o.querySelector('.check').style.display = 'none';
+        });
+
+        clickedOption.classList.add('selected');
+        clickedOption.querySelector('.check').style.display = 'flex';
+        selectedOption = clickedOption.getAttribute('data-value');
+        
+        // Update local state: Record the answer
+        quizData[currentQuestionNumber - 1].userAnswer = selectedOption;
+        
+        if (!currentQuestion.isPenalized) {
+            quizProgress[currentQuestionNumber - 1] = 'answered';
+        } else {
+             quizProgress[currentQuestionNumber - 1] = 'penalized';
+        }
+        
+        updateSidebarList();
+        
+        // NO API CALL HERE: Answer state is purely local until Next/Submit click
+    }
+    
+    /**
+     * Renders a question from the locally stored quizData array.
+     */
+    async function fetchQuestion(qNumber) {
+        
+        if (qNumber < 1 || qNumber > TOTAL_QUESTIONS) {
+            endQuiz('completed');
+            return;
+        }
+
+        questionTitleEl.textContent = "Loading...";
+        
+        // Remove existing marks container to prevent duplicates
+        const existingMarks = document.getElementById('marks-container');
+        if (existingMarks) existingMarks.remove();
+        
+        optionsListEl.innerHTML = `
+            <div class="loading-question">
+                <div class="loading-spinner"></div>
+                Fetching question data...
+            </div>
+        `;
+        imageContainerEl.style.display = 'none'; 
+
+        try {
+            currentQuestion = quizData[qNumber - 1];
+            currentQuestionNumber = qNumber;
+            
+            // CRITICAL: Marks display section 
+            const marksContainer = document.createElement('div');
+            marksContainer.id = 'marks-container';
+            marksContainer.style.marginBottom = '10px'; 
+            
+            // Get marks property (now set in initializeQuizSession)
+            const questionMarks = currentQuestion.marks; 
+            let marksText = `[Marks: ${questionMarks}]`;
+            let marksStyle = `font-size:16px; font-weight:600; color:var(--muted);`;
+
+            const marksSpan = document.createElement('span');
+            marksSpan.innerHTML = `<span style="${marksStyle}">${marksText}</span>`;
+            
+            // FIX: Append the marks container above the question title
+            marksContainer.appendChild(marksSpan);
+            questionTitleEl.parentNode.insertBefore(marksContainer, questionTitleEl);
+
+
+            questionTitleEl.textContent = currentQuestion.questionText;
+            
+            // IMAGE DISPLAY LOGIC
+            if (currentQuestion.imageUrl) {
+                questionImageEl.src = currentQuestion.imageUrl; // This is now the full URL
+                imageContainerEl.style.display = 'block';
+            } else {
+                imageContainerEl.style.display = 'none';
+                questionImageEl.src = '';
+            }
+
+            renderOptions(currentQuestion.options, currentQuestion.userAnswer);
+            updateSidebarList(); 
+            updateNavigationButtons(); 
+            
+        } catch (error) {
+            console.error("Error loading question:", error);
+            showNotification("Error: Failed to render question data.", true, 10000); 
+            questionTitleEl.textContent = "Error: Failed to load question data."; 
+            optionsListEl.innerHTML = '<p style="color:#f00; padding:20px;">An error occurred while displaying the question.</p>';
+        }
+    }
+    
+    function updateNavigationButtons() {
+        if (currentQuestionNumber > 1) {
+            prevBtnEl.style.display = 'inline-block';
+        } else {
+            prevBtnEl.style.display = 'none';
+        }
+        
+        if (currentQuestionNumber === TOTAL_QUESTIONS) {
+            nextBtnEl.style.display = 'none';
+            submitQuizBtnEl.textContent = 'Submit Answers';
+            submitQuizBtnEl.style.display = 'inline-block';
+            // Submit button starts disabled unless remaining time <= 15 min
+            if (TOTAL_TIME_SECONDS > FINAL_SUBMISSION_WINDOW_SECONDS) {
+                 submitQuizBtnEl.disabled = true;
+            }
+        } else {
+            nextBtnEl.textContent = 'Next Question';
+            nextBtnEl.style.display = 'inline-block';
+            submitQuizBtnEl.style.display = 'none'; 
+        }
+    }
+
+
+    async function submitFullQuiz() {
+        // CRITICAL: Enforce submission time window check
+        if (TOTAL_TIME_SECONDS > FINAL_SUBMISSION_WINDOW_SECONDS) {
+            const minutesLeft = Math.ceil(TOTAL_TIME_SECONDS / 60);
+            const minutesRemaining = Math.ceil((TOTAL_TIME_SECONDS - FINAL_SUBMISSION_WINDOW_SECONDS) / 60);
+            
+            showNotification(`Manual submission is only allowed in the last 15 minutes. You have approximately ${minutesRemaining} minutes remaining until the submission window opens.`, true, 5000);
+            return;
+        }
+
+
+        // CRITICAL: Use username as the session identifier
+        if (!quizActive || !userName) {
+            showNotification("Error: User identifier is missing. Cannot submit.", true, 5000);
+            return;
+        }
+        
+        // This structure is based on the final submission API 
+        const finalSubmission = quizData.map(q => ({
+            questionId: q.id,
+            userAnswer: q.userAnswer || 'N', // Send 'N' if unanswered
+            isPenalized: q.isPenalized 
+        }));
+
+        console.log("Submission Data ready:", {quizSessionId: userName, totalWarnings: warningCount, submittedAnswers: finalSubmission});
+
+        submitQuizBtnEl.textContent = 'Submitting Final Answers...';
+        submitQuizBtnEl.disabled = true;
+
+        try {
+            // --- FINAL SUBMISSION API CALL: POST /api/exam/{username}/submit/ ---
+            const response = await fetch(QUIZ_SUBMIT_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`, 
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    quizSessionId: userName, // Use username as the session identifier
+                    totalWarnings: warningCount, // Send the final, local accumulated warning count
+                    submittedAnswers: finalSubmission
+                })
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || data.message || 'Failed to submit quiz.');
+            }
+            
+            // Successful final submission, redirect to completed page
+            window.location.href = EXAM_COMPLETED_URL; 
+            
+        } catch (error) {
+            console.error("Error submitting final quiz:", error);
+            showNotification(error.message || "Error submitting the quiz. Please try again or contact support.", true, 5000);
+            submitQuizBtnEl.textContent = 'Submit Answers';
+            submitQuizBtnEl.disabled = false;
+        } 
+    }
+    
+    function updateSidebarList() {
+        quizListEl.innerHTML = '';
+        const answeredCount = quizProgress.filter(status => status === 'answered' || status === 'penalized').length;
+        progressTextEl.textContent = `${answeredCount}/${TOTAL_QUESTIONS}`;
+        breadcrumbEl.innerHTML = `Question ${currentQuestionNumber} of ${TOTAL_QUESTIONS}`;
+
+        for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+            const qItem = document.createElement('div');
+            qItem.classList.add('q-item');
+            qItem.textContent = `Question ${i + 1}`;
+            qItem.setAttribute('data-qnum', i + 1); 
+
+            if (i + 1 === currentQuestionNumber) {
+                qItem.classList.add('current');
+            } else if (quizProgress[i] === 'penalized') {
+                qItem.classList.add('penalized'); 
+                const tick = quizData[i].userAnswer !== null ? '✔' : '🚫';
+                qItem.innerHTML = `Question ${i + 1} <span>${tick}</span>`;
+            } else if (quizProgress[i] === 'answered') {
+                qItem.classList.add('answered');
+                qItem.innerHTML = `Question ${i + 1} <span>✔</span>`;
+            } else if (quizProgress[i] === 'skipped' || quizProgress[i] === 'unanswered') {
+                qItem.classList.add('skipped'); 
+                const indicator = quizData[i].userAnswer !== null ? '❓' : '❓'; // Show ? if unanswered
+                qItem.innerHTML = `Question ${i + 1} <span>${indicator}</span>`;
+            } 
+            
+            if (i + 1 !== currentQuestionNumber) {
+                 qItem.addEventListener('click', (e) => {
+                    const qNum = parseInt(e.currentTarget.getAttribute('data-qnum'));
+                    fetchQuestion(qNum);
+                 });
+            }
+
+            quizListEl.appendChild(qItem);
+        }
+    }
+
+
+    // --- PROCTORING LOGIC (MODIFIED FOR NEXT QUESTION SYNC) ---
+
+    function enterFullscreen(element) {
+        const requestFS = element.requestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen || element.msRequestFullscreen;
+        
+        if (requestFS) {
+            requestFS.call(element).catch(err => {
+                console.warn("Fullscreen request denied by browser. User must re-enter manually.");
+            });
+        }
+    }
+
+    function handleViolation() {
+        if (!quizActive) return;
+        
+        const isFullscreen = document.fullscreenElement || document.mozRequestFullScreen || document.webkitFullscreenElement || document.msFullscreenElement;
+        const isHiddenOrBlurred = document.hidden || !document.hasFocus();
+        let violationType = !isFullscreen ? 'exited Full Screen mode' : 'switched tabs, minimized the window, or lost focus';
+        
+        warningCount++; // Increment local count
+        
+        // --- IMMEDIATE WARNING SYNC FOR ACCURATE COUNT ---
+        // We sync the warnings and current answer state immediately after violation.
+        const qId = currentQuestion ? currentQuestion.id : quizData[0].id;
+        const currentQIndex = currentQuestionNumber - 1;
+        const answer = quizData[currentQIndex]?.userAnswer;
+        
+        // This function will send the new local warningCount, and if successful, reset it to 0.
+        // This ensures no warnings are lost, even if the user doesn't hit "Next Question" immediately.
+        updateQuestionState(qId, answer, warningCount);
+
+        // --- VISUAL AND PENALTY LOGIC (UNCHANGED) ---
+        let message;
+        
+        if (warningCount < EXAM_TERMINATION_WARNING) {
+            
+            // Mark Deduction Logic (applies penalty locally starting from 6th local warning)
+            if (currentQuestion && !quizData[currentQIndex].isPenalized && warningCount > MAX_WARNINGS_BEFORE_DEDUCTION) {
+                
+                if (currentQuestion.marks > PENALIZED_MARKS) {
+                    quizData[currentQIndex].isPenalized = true;
+                    quizProgress[currentQIndex] = 'penalized';
+                    
+                    if(currentQuestionNumber > 0 && currentQuestionNumber <= TOTAL_QUESTIONS) {
+                        // Re-render to update sidebar color/state
+                        updateSidebarList();
+                    }
+                }
+            }
+            
+            if (warningCount <= MAX_WARNINGS_BEFORE_DEDUCTION) {
+                const remaining = MAX_WARNINGS_BEFORE_DEDUCTION - warningCount;
+                message = `⚠️ Warning . You have ${violationType}. You have done something wrong so, warnings left before mark deductions begin.`;
+                showNotification(message, false, 8000); 
+            } else {
+                const marksToDeduct = (currentQuestion.marks ? (currentQuestion.marks - PENALIZED_MARKS) : 0).toFixed(1);
+                message = `🚫 MARK DEDUCTION WARNING! Violation . The exam will terminate on violation ${EXAM_TERMINATION_WARNING}.`;
+                showNotification(message, true, 10000); 
+            }
+            
+        } else {
+            message = `Critical Violation! You have reached the maximum violation limit (${EXAM_TERMINATION_WARNING}). You will now be redirected.`;
+            
+            showTerminationModal("⛔ EXAM TERMINATED!", message, () => {
+                endQuiz('violation');
+            });
+            return; 
+        }
+    }
+
+    function handleFullscreenChange() {
+        const isFullscreen = document.fullscreenElement || document.mozRequestFullScreen || document.webkitFullscreenElement || document.msFullscreenElement;
+        
+        if (!isFullscreen && quizActive) {
+            debouncedHandleViolation(); 
+            fullscreenBtnEl.style.display = 'inline-block';
+        } else if (isFullscreen && quizActive) {
+            fullscreenBtnEl.style.display = 'none';
+        }
+    }
+    
+    function showTerminationModal(heading, message, onConfirm) {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.classList.add('modal-overlay');
+        modalOverlay.id = 'terminationModal';
+        modalOverlay.style.zIndex = 3000; 
+
+        const modalContent = document.createElement('div');
+        modalContent.classList.add('modal-content');
+        modalContent.style.maxWidth = '400px'; 
+        modalContent.style.textAlign = 'center';
+
+        modalContent.innerHTML = `
+            <h2 style="color: #8f0909; border-bottom: 2px solid #8f0909; font-weight: 700;">${heading}</h2>
+            <p style="font-size: 16px; font-weight: 600;">${message}</p>
+            <div style="margin-top: 25px;">
+                <button id="acknowledgeBtn" class="btn" style="background:#8f0909; width: 100%;">Acknowledge & Redirect</button>
+            </div>
+        `;
+        
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+
+        document.getElementById('acknowledgeBtn').addEventListener('click', () => {
+            modalOverlay.remove();
+            onConfirm(); 
+        }, { once: true });
+    }
+
+    function endQuiz(reason) {
+        if (!quizActive) return; 
+        quizActive = false;
+        
+        if (timerInterval) clearInterval(timerInterval);
+        
+        window.removeEventListener('blur', debouncedHandleViolation);
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+
+        console.log(`Quiz ended due to: ${reason}`);
+        window.location.href = END_EXAM_URL; 
+    }
+
+    function startProctoring() {
+        if (quizData.length === 0 || TOTAL_TIME_SECONDS === 0) {
+            showNotification("Quiz data is not loaded. Cannot start exam.", true, 5000);
+            return;
+        }
+        
+        // This function is now called AFTER the API returns successfully
+        quizActive = true;
+        document.getElementById('instructionModal').style.display = 'none';
+        document.getElementById('quizWrap').style.display = 'flex';
+        
+        document.addEventListener('visibilitychange', () => {
+             if (document.hidden) debouncedHandleViolation(); 
+        });
+        
+        window.addEventListener('blur', debouncedHandleViolation); 
+        
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        enterFullscreen(document.documentElement);
+        fullscreenBtnEl.style.display = 'none';
+
+        initTimer(TOTAL_TIME_SECONDS);
+        fetchQuestion(1); 
+    }
+    
+    // --- TIMER LOGIC (MODIFIED: Remaining time used for initialization) ---
+    function initTimer(totalSeconds) {
+      let remaining = totalSeconds; 
+      const timeText = document.getElementById('timeText');
+      const progress = document.getElementById('progress');
+      // For progress bar calculation, we use a mock total time (1 hour)
+      const MOCK_TOTAL_EXAM_TIME = 60 * 60; 
+      const TOTAL_SECONDS_FOR_PROGRESS = MOCK_TOTAL_EXAM_TIME; 
+
+      const PERIM = 2 * Math.PI * 48;
+      progress.style.strokeDasharray = PERIM.toFixed(2);
+      
+      function setProgress(sec){
+        const percent = Math.max(0, sec / TOTAL_SECONDS_FOR_PROGRESS);
+        const offset = PERIM * (1 - percent);
+        progress.style.strokeDashoffset = offset.toFixed(2);
+      }
+      
+      // Helper function to format time
+      function format(t){
+        const h = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        const s = t % 60;
+        
+        let timeString = '';
+        if (h > 0) {
+            timeString += h + ':';
+        }
+        timeString += m + ':' + (s<10?('0'+s):s);
+        return timeString;
+      }
+
+      timeText.textContent = format(remaining);
+      setProgress(remaining);
+
+      timerInterval = setInterval(()=>{
+        remaining--;
+        if (remaining < 0){
+          clearInterval(timerInterval);
+          timeText.textContent = '0:00';
+          setProgress(0);
+          endQuiz('time_out');
+          return;
+        }
+        TOTAL_TIME_SECONDS = remaining; // Update global variable every second
+        timeText.textContent = format(remaining);
+        setProgress(remaining);
+        
+        // CRITICAL: Check if we are within the final submission window
+        if (remaining <= FINAL_SUBMISSION_WINDOW_SECONDS) {
+            submitQuizBtnEl.disabled = false;
+        }
+        
+      }, 1000);
+    }
+    
+    function showSubmissionModal(heading, message, onConfirm) {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.classList.add('modal-overlay');
+        modalOverlay.id = 'submissionModal';
+
+        const modalContent = document.createElement('div');
+        modalContent.classList.add('modal-content');
+        modalContent.style.maxWidth = '450px'; 
+
+        modalContent.innerHTML = `
+            <h2>${heading}</h2>
+            <p>${message}</p>
+            <div style="display:flex; justify-content:space-between; margin-top: 25px;">
+                <button id="cancelSubmissionBtn" class="btn" style="background:#555; box-shadow:none;">Cancel</button>
+                <button id="confirmSubmissionBtn" class="btn" style="background:var(--accent);">Yes, Submit</button>
+            </div>
+        `;
+        
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+
+        document.getElementById('cancelSubmissionBtn').addEventListener('click', () => {
+            modalOverlay.remove();
+        });
+
+        document.getElementById('confirmSubmissionBtn').addEventListener('click', () => {
+            modalOverlay.remove();
+            onConfirm(); 
+        });
+    }
+
+    // --- EVENT LISTENERS (MODIFIED FOR NEXT QUESTION SYNC) ---
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // --- Initial Setup (Uses initial static HTML values) ---
+        initialTotalQEl.textContent = `${TOTAL_QUESTIONS} Questions`;
+        initialTimeLimitEl.textContent = formatTime(TOTAL_TIME_SECONDS);
+        progressTextEl.textContent = `0/${TOTAL_QUESTIONS}`;
+
+
+        // --- 1. Initial API Call ---
+        // This now calls the single consolidated GET endpoint
+        if (accessToken) {
+            initializeQuizSession();
+        } else {
+            document.getElementById('startQuizBtn').disabled = true;
+            document.getElementById('startQuizBtn').textContent = 'Login Required';
+        }
+
+        const agreeCheckbox = document.getElementById('agreeCheckbox');
+        const startQuizBtn = document.getElementById('startQuizBtn');
+
+        // Modal Checkbox Logic 
+        agreeCheckbox.addEventListener('change', () => {
+            const isChecked = agreeCheckbox.checked;
+            // The button is disabled if not checked OR if quizData hasn't been fetched (length > 0)
+            startQuizBtn.disabled = !isChecked || quizData.length === 0; 
+            startQuizBtn.style.opacity = (isChecked && quizData.length > 0) ? '1' : '0.5';
+            startQuizBtn.style.cursor = (isChecked && quizData.length > 0) ? 'pointer' : 'not-allowed';
+        });
+
+        // Start Button Click: 
+        startQuizBtn.addEventListener('click', startProctoring);
+        
+        prevBtnEl.addEventListener('click', () => {
+            if (!quizActive) return;
+            if (currentQuestionNumber > 1) {
+                // No sync required on previous click
+                fetchQuestion(currentQuestionNumber - 1);
+            }
+        });
+
+        nextBtnEl.addEventListener('click', async () => {
+            if (!quizActive) return;
+            
+            const currentQIndex = currentQuestionNumber - 1;
+
+            if (quizData[currentQIndex].userAnswer === null && quizProgress[currentQIndex] === 'unanswered') {
+                quizProgress[currentQIndex] = 'skipped';
+            }
+            
+            // CRITICAL: Sync warnings and current state upon moving to the next question
+            const qId = currentQuestion ? currentQuestion.id : quizData[0].id;
+            const answer = quizData[currentQIndex].userAnswer;
+            
+            // Send accumulated warnings (local warningCount) and current answer.
+            // updateQuestionState handles the API call and reset of local warningCount to 0.
+            await updateQuestionState(qId, answer, warningCount);
+
+
+            if (currentQuestionNumber < TOTAL_QUESTIONS) {
+                fetchQuestion(currentQuestionNumber + 1);
+            }
+        });
+
+        fullscreenBtnEl.addEventListener('click', () => {
+            if (!quizActive) return;
+            enterFullscreen(document.documentElement);
+        });
+
+        submitQuizBtnEl.addEventListener('click', () => {
+            if (!quizActive) return;
+
+            // CRITICAL: Check for submission window
+            if (TOTAL_TIME_SECONDS > FINAL_SUBMISSION_WINDOW_SECONDS) {
+                const totalMinutes = Math.ceil(TOTAL_TIME_SECONDS / 60);
+                const minutesRemaining = Math.ceil((TOTAL_TIME_SECONDS - FINAL_SUBMISSION_WINDOW_SECONDS) / 60);
+                
+                showNotification(`Manual submission is only allowed in the last 15 minutes. You have approximately ${minutesRemaining} minutes remaining until the submission window opens.`, true, 5000);
+                return;
+            }
+            
+            const currentQIndex = currentQuestionNumber - 1;
+
+            if (quizData[currentQIndex].userAnswer === null && quizProgress[currentQIndex] === 'unanswered') {
+                quizProgress[currentQIndex] = 'skipped';
+            }
+
+            const unansweredCount = quizProgress.filter(status => status === 'skipped' || status === 'unanswered').length;
+            
+            let confirmationMessage = "Are you sure you want to submit the quiz? You cannot make changes after submission.";
+            let headingText = "Confirm Final Submission";
+            
+            if (unansweredCount > 0) {
+                headingText = "Warning: Unanswered Questions!";
+                 confirmationMessage = `You have <b>${unansweredCount}</b> question(s) that are unanswered or skipped. ` + confirmationMessage;
+            }
+            
+            updateSidebarList();
+
+            showSubmissionModal(headingText, confirmationMessage, () => {
+                submitFullQuiz();
+            });
+        });
+
+    });
+
+  </script>
+</body>
+</html>

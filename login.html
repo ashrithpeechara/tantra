@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        /* Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Login Container */
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+            animation: slideIn 0.5s ease-out;
+            z-index: 10;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header and Form Styles (Omitted for brevity, as they remain mostly unchanged) */
+        .login-header {
+            background: linear-gradient(135deg, #20284c 0%, #110557 100%);
+            padding: 40px 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .login-header h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-form {
+            padding: 40px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .remember-me label {
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #0e1533 0%, #111154 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        /* Error Message Style */
+        #error-message {
+            color: #ff3860;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none; /* Initially hidden */
+        }
+
+        /* --- Loading Overlay Styles --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none; /* Initially hidden */
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            /* Glossy/Blurred Effect */
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            background-color: rgba(255, 255, 255, 0.6); /* Semi-transparent white for 'glossy' */
+            transition: backdrop-filter 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 5px solid rgba(17, 17, 84, 0.2);
+            border-top: 5px solid #111154; /* Primary color for the spinner */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h2>Please login to your account</h2>
+        </div>
+        
+        <form class="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="rollno">Roll No</label>
+                <input type="text" id="rollno" name="rollno" placeholder="Enter your Roll No" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+            
+            <div class="remember-me">
+                <input type="checkbox" id="remember" name="remember">
+                <label for="remember">Remember me</label>
+            </div>
+
+            <div id="error-message"></div>
+            
+            <button type="submit" class="login-button">Login</button>
+            
+            <div class="signup-link">
+                Don't have an account? <a href="#">Sign up</a>
+            </div>
+        </form>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        const errorDisplay = document.getElementById('error-message');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+            errorDisplay.style.display = 'none';
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        function showError(message) {
+            if (message && typeof message === 'object' && message.detail) {
+                errorDisplay.textContent = message.detail;
+            } else {
+                errorDisplay.textContent = message || 'An unknown error occurred.';
+            }
+            errorDisplay.style.display = 'block';
+        }
+
+        // --- API CONSTANTS & SECURITY CONFIG ---
+        const LOGIN_API_URL = 'http://10.37.52.254:8000/api/login/'; 
+        const LANDING_PAGE_URL = 'quiz.html'; 
+        const THANK_YOU_PAGE_URL = 'thanku.html';
+        const MAX_LOGIN_ATTEMPTS = 3;
+        const LOGIN_ATTEMPTS_KEY = 'consecutiveLoginFails'; // Key to store in localStorage
+
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            const rollno = document.getElementById('rollno').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // 1. Client-Side Quick Check for local lockout
+        
+            
+
+            if (!rollno || !password) {
+                showError('Please enter both Roll No and Password.');
+                return;
+            }
+
+            showLoading(); 
+
+            try {
+                const response = await fetch(LOGIN_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: rollno, password }),
+                });
+                
+                const data = await response.json();
+
+                if (!response.ok) {
+                    
+                    // 2. CHECK FOR BACKEND 403 (AUTHORITATIVE LOCKOUT)
+                    if (response.status === 403) {
+                         localStorage.setItem(LOGIN_ATTEMPTS_KEY, MAX_LOGIN_ATTEMPTS); // Lock local access
+                         showError(data.error || 'Maximum login attempts exceeded. Redirecting...');
+                         setTimeout(() => {
+                             window.location.href = THANK_YOU_PAGE_URL;
+                         }, 2000);
+                         return;
+                    }
+                    
+                    // 3. Handle Generic Failure (increment local counter)
+                    attempts++;
+                    localStorage.setItem(LOGIN_ATTEMPTS_KEY, attempts);
+                    
+                    const errorMessage = data.detail || data.message || 'Login failed. Please check your credentials.';
+                    
+                    if (attempts >= MAX_LOGIN_ATTEMPTS) {
+                        showError(errorMessage + ` Maximum attempts reached. Redirecting...`);
+                        setTimeout(() => {
+                            window.location.href = THANK_YOU_PAGE_URL;
+                        }, 2000); 
+                    } else {
+                        showError(errorMessage + ` (Attempt ${attempts}/${MAX_LOGIN_ATTEMPTS})`);
+                    }
+                    
+                    hideLoading();
+                    return; 
+                }
+                
+                // --- SUCCESS ---
+                // 4. Reset counter on successful login
+                localStorage.setItem(LOGIN_ATTEMPTS_KEY, 0);
+
+                if (data.access && data.refresh && data.username) {
+                    localStorage.setItem('accessToken', data.access);
+                    localStorage.setItem('refreshToken', data.refresh);
+                    localStorage.setItem('userName', data.username); 
+                } else {
+                     throw new Error('Login successful but tokens or username were not received from the server.');
+                }
+
+                hideLoading();
+                window.location.href = LANDING_PAGE_URL; 
+
+            } catch (error) {
+                // Handle network error (e.g., server down)
+                hideLoading();
+                showError(error.message || 'An unexpected network error occurred. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
